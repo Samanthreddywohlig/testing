@@ -19,7 +19,7 @@ app.use(bodyParser.json());
 
 app.post('/ip/details', (req,res ) => {
     try{
-        logger.asasas('okay', Logger.parse(req) )
+        logger.info('okay', Logger.parse(req) )
         const ip = req.body.ip || req.query.ip;
         //ip is not being validated fully
         if(!ip){
