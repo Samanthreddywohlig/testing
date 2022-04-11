@@ -7,20 +7,21 @@ const winston = require('winston');
 const winstonES = require('winston-elasticsearch');
 const userAgent = require('express-useragent');
 const _ = require('lodash');
+const WinstonLogStash = require('winston3-logstash-transport');
+const ecsFormat = require('@elastic/ecs-winston-format')
 
 //custom format
 const customFormat = winston.format.printf((data) => {
-    console.log( data  )
-    return {
+    return JSON.stringify({
         "@timestamp": data.timestamp , 
         "message": data.message,
         "log.level": data.level,
-        "ip": data.meta.ip,
-        "device": data.meta.device,
+        "ip": data.meta?data.meta.ip: null,
+        "device": data.meta?data.meta.device: null,
         "service": process.env.SERVICE_NAME,
-        "meta": data.level //log level
-    }
-})
+        "extra": data //log level
+    })
+});
 
 class Logger{
     constructor(){
@@ -28,12 +29,14 @@ class Logger{
             transports:[
                 new winston.transports.Console()
             ],
-            format:winston.format.combine(
-                winston.format.errors({ stack: true }),
-                winston.format.timestamp(),
-                customFormat
-            )
+            format:ecsFormat()
         })
+        this.winstonLogger.add(new WinstonLogStash({
+            //move it to environment variables
+            mode: 'tcp',
+            host: '127.0.0.1',
+            port: 5000
+          }));
     }
 
     logger(){
@@ -48,7 +51,7 @@ class Logger{
             "ip": req.headers['x-forwarded-for'] || req.socket.remoteAddress ,
             "device": _.pick( ua , ['browser','source','platform','os'])
         }
-        return {"meta": Object.assign(obj,meta)};
+        return Object.assign(obj,meta);
     }
 }
 
