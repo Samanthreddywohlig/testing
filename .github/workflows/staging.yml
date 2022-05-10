@@ -29,9 +29,6 @@ jobs:
 
       - name: Install dependencies
         run: npm i --unsafe-perm
-        
-      - name: Build
-        run: npx browserslist@latest --update-db && CI=false npm run build
 
       - name: Node SASS rebuild
         run: npm rebuild node-sass --force
