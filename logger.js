@@ -1,41 +1,38 @@
 /**
  * Log format 
  */
-
 require("dotenv").config();
 const winston = require('winston');
-const winstonES = require('winston-elasticsearch');
+const Elasticsearch = require('winston-elasticsearch');
 const userAgent = require('express-useragent');
 const _ = require('lodash');
 const WinstonLogStash = require('winston3-logstash-transport');
 const ecsFormat = require('@elastic/ecs-winston-format')
+require('winston-logstash');
 
-//custom format
-const customFormat = winston.format.printf((data) => {
-    return JSON.stringify({
-        "@timestamp": data.timestamp , 
-        "message": data.message,
-        "log.level": data.level,
-        "ip": data.meta?data.meta.ip: null,
-        "device": data.meta?data.meta.device: null,
-        "service": process.env.SERVICE_NAME,
-        "extra": data //log level
-    })
-});
-
+//Logger
 class Logger{
     constructor(){
         this.winstonLogger = winston.createLogger({
             transports:[
-                new winston.transports.Console()
+                new winston.transports.Console(),
+                new winston.transports.File({
+                    //path to log file
+                    filename: 'logs/log.json',
+                    level: 'debug'
+                  }),
             ],
-            format:ecsFormat()
+            format:  winston.format.combine(
+                ecsFormat()
+            )
         })
         this.winstonLogger.add(new WinstonLogStash({
-            //move it to environment variables
-            mode: 'tcp',
-            host: '127.0.0.1',
-            port: 5000
+            port: process.env.LOGSTASH_PORT,
+            host: process.env.LOGSTASH_HOST,
+            mode: process.env.LOGSTASH_FORMAT,
+            applicationName: process.env.SERVICE_NAME,
+            label: "NODEJS",
+            formatted: true
           }));
     }
 
@@ -44,14 +41,19 @@ class Logger{
     }
 
     //function used to parse the request
-    parse( req, meta ){
+    parse( req ){
         var source = req.headers['user-agent'];
         var ua = userAgent.parse(source);
+        const uaDetails = _.pick( ua , ['browser','source','platform','os']);
         const obj =  {
             "ip": req.headers['x-forwarded-for'] || req.socket.remoteAddress ,
-            "device": _.pick( ua , ['browser','source','platform','os'])
+            "device_browser": uaDetails['browser'],
+            "device_source": uaDetails['source'],
+            "device_platform": uaDetails['platform'],
+            "device_os": uaDetails["os"],
+            "service": process.env.SERVICE_NAME,
         }
-        return Object.assign(obj,meta);
+        return obj;
     }
 }
 
