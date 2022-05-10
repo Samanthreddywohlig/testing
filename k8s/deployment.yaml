@@ -17,6 +17,6 @@ spec:
         image: mukulxinaam/ip-service
         envFrom:
         - configMapRef:
-            name: example-configmap
+            name: ip-service
         ports:
         - containerPort: 3002
