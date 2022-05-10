@@ -1,0 +1,19 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ip-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ip-service
+  template:
+    metadata:
+      labels:
+        app: ip-service
+    spec:
+      containers:
+      - name: ip-service
+        image: mukulxinaam/ip-service
+        ports:
+        - containerPort: 3000
