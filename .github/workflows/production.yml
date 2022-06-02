@@ -4,7 +4,7 @@ name: ip-service
 # events but only for the prod branch
 on:
   push:
-    branches: [ prod ]
+    branches: [ production ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -51,9 +51,10 @@ jobs:
           # Azure credentials i.e. output of `az ad sp create-for-rbac --sdk-auth`
           creds: '${{secrets.AZURE_CREDENTIALS}}'
           # Resource Group Name
-          resource-group: dns-mzaalo
+          resource-group: mzaalo-prod
           # AKS Cluster Name
-          cluster-name: mzaalo-prod
+          cluster-name: mzaalo-production
+
 
     # Create K8s secrets to pull images
       - name: Create secret in Kubernetes cluster

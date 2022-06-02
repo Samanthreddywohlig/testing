@@ -25,7 +25,7 @@ app.use(bodyParser.json());
 
 app.post('/ip/details', (req,res ) => {
     try{
-        logger.info({ip: req.body.ip || req.query.ip});
+        // logger.info({ip: req.body.ip || req.query.ip});
         const ip = req.body.ip || req.query.ip;
         //ip is not being validated fully
         if(!ip){
@@ -35,7 +35,7 @@ app.post('/ip/details', (req,res ) => {
         return res.status(200).send({error: null, message: response });
     }catch( error ){
         console.log( error )
-        logger.error({error: error})
+        // logger.error({error: error})
         return res.status(400).send({error: ERROR_GETTING_IP_DETAILS, message: null });
     }
 })
