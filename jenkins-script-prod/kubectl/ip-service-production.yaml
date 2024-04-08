@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: ip-service
-          image: mukulxinaam/ip-service:prod-2024-04-06-01
+          image: mukulxinaam/ip-service:tagVersion
           envFrom:
             - configMapRef:
                 name: ip-service
@@ -22,3 +22,18 @@ spec:
             - containerPort: 3002
       imagePullSecrets:
         - name: mukulxinaam
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ip-service
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 3002
+      targetPort: 3002
+      protocol: TCP
+  selector:
+    app: ip-service

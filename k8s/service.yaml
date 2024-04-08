@@ -3,12 +3,12 @@ kind: Service
 metadata:
   name: ip-service
   annotations:
-   service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
 spec:
   type: LoadBalancer
   ports:
-  - port: 3002
-    targetPort: 3002
-    protocol: TCP
+    - port: 3002
+      targetPort: 3002
+      protocol: TCP
   selector:
     app: ip-service
