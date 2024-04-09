@@ -41,12 +41,12 @@ node {
     sh './kubectl version'
     // sh './kubectl get pods'
     sh './kubectl config current-context'
-    sh 'aws sts get-caller-identity'
-    sh 'aws eks get-token --cluster-name mzaalo-ott-prod and aws-iam-authenticator token -i mzaalo-ott-prod'
-    sh 'eksctl get iamidentitymapping --cluster mzaalo-ott-prod'
+    // sh 'aws sts get-caller-identity'
+    // sh 'aws eks get-token --cluster-name mzaalo-ott-prod and aws-iam-authenticator token -i mzaalo-ott-prod'
+    // sh 'eksctl get iamidentitymapping --cluster mzaalo-ott-prod'
     sh "aws eks update-kubeconfig --region ap-south-1 --name mzaalo-ott-prod"
-    sh "./kubectl config view --minify"
-    sh './kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml'
+    // sh "./kubectl config view --minify"
+    sh './kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml -n prod'
     // }
   }
 
