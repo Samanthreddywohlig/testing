@@ -21,7 +21,7 @@ node {
       sh "docker build -t ${dockerImage} -f ${dockerfile} ."
     }
     stage('Push docker image') {
-      withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'dockerhub-mukul', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
+      withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
         sh 'docker login -u $USERNAME -p $PASSWORD'
       }
         sh "docker push ${dockerImage}"
