@@ -37,7 +37,7 @@ node {
     // withKubeConfig([credentialsId: 'kubernetes-config']){
     sh 'curl -LO "https://s3.us-west-2.amazonaws.com/amazon-eks/1.29.0/2024-01-04/bin/linux/arm64/kubectl"'  
     sh 'chmod u+x ./kubectl'  
-    sh 'mv ./kubectl /usr/local/bin/kubectl'
+    sh 'sudo mv ./kubectl /usr/local/bin/kubectl'
     sh 'kubectl version'
     sh 'kubectl get pods'
     sh "aws eks update-kubeconfig --region ap-south-1 --name mzaalo-ott-prod"
