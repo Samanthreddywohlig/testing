@@ -35,17 +35,16 @@ node {
 
 
     // withKubeConfig([credentialsId: 'kubernetes-config']){
-    sh 'whoami'
-    // sh 'aws s3 ls'
     sh 'curl -LO "https://s3.us-west-2.amazonaws.com/amazon-eks/1.29.0/2024-01-04/bin/linux/arm64/kubectl"'  
     sh 'chmod u+x ./kubectl'  
     //sh 'mv ./kubectl /usr/local/bin/kubectl'
     sh './kubectl version'
     // sh './kubectl get pods'
+    sh './kubectl config current-context'
     sh 'aws sts get-caller-identity'
     sh 'eksctl get iamidentitymapping --cluster mzaalo-ott-prod'
     sh "aws eks update-kubeconfig --region ap-south-1 --name mzaalo-ott-prod"
-    sh "kubectl config view --minify"
+    sh "./kubectl config view --minify"
     sh './kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml'
     // }
   }
