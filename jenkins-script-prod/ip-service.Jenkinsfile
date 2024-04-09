@@ -47,7 +47,7 @@ node {
     sh "aws eks update-kubeconfig --region ap-south-1 --name mzaalo-ott-prod"
     // sh "./kubectl config view --minify"
     sh 'whoami'
-    sh 'kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml -n prod'
+    sh 'usr/local/bin/kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml -n prod'
     // }
   }
 
