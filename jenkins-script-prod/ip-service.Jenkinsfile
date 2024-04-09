@@ -42,7 +42,10 @@ node {
     //sh 'mv ./kubectl /usr/local/bin/kubectl'
     sh './kubectl version'
     // sh './kubectl get pods'
+    sh 'aws sts get-caller-identity'
+    sh 'eksctl get iamidentitymapping --cluster mzaalo-ott-prod'
     sh "aws eks update-kubeconfig --region ap-south-1 --name mzaalo-ott-prod"
+    sh "kubectl config view --minify"
     sh './kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml'
     // }
   }
