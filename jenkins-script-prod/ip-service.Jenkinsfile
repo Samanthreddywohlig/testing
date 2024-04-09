@@ -34,7 +34,9 @@ node {
 
     sh "aws eks update-kubeconfig --region ap-south-1 --name mzaalo-ott-prod"
 
-    sh 'kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml'
+    withKubeConfig([credentialsId: 'kubernetes-config']){
+      sh 'kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml'
+    }
   }
 
   stage('Mail Send Conformation') {
