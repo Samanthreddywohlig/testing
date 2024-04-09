@@ -46,7 +46,7 @@ node {
     // sh 'eksctl get iamidentitymapping --cluster mzaalo-ott-prod'
     sh "aws eks update-kubeconfig --region ap-south-1 --name mzaalo-ott-prod"
     // sh "./kubectl config view --minify"
-    sh './kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml -n prod'
+    sh 'kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml -n prod'
     // }
   }
 
