@@ -32,10 +32,14 @@ node {
     sh "chmod +x changeTagProd.sh"
     sh "./changeTagProd.sh ${imgVersion}"
 
-    sh "aws eks update-kubeconfig --region ap-south-1 --name mzaalo-ott-prod"
+
 
     // withKubeConfig([credentialsId: 'kubernetes-config']){
-      sh '$(which kubectl) apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml'
+    sh 'curl -LO "https://s3.us-west-2.amazonaws.com/amazon-eks/1.29.0/2024-01-04/bin/linux/amd64/kubectl"'  
+    sh 'chmod u+x ./kubectl'  
+    // sh './kubectl get pods'
+    sh "aws eks update-kubeconfig --region ap-south-1 --name mzaalo-ott-prod"
+    sh './kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml'
     // }
   }
 
