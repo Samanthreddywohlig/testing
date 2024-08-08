@@ -26,10 +26,18 @@ node {
         }
     }
 
-    stage('Build Docker Image') {
-        // Build the Docker image with specified Dockerfile path
-        sh "docker build -f ${DOCKERFILE_PATH} -t ${DOCKER_USER}/${REPO_NAME}/${IMAGE_NAME}:${BUILD_NUMBER} ."
-
+        stages {
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+                        def customImage = docker.build("${REPO_NAME}:${IMAGE_TAG}")
+                        customImage.push()
+                    }
+                }
+            }
+        }
+        }
         // Login to Docker Hub
         sh "docker login -u $DOCKER_USER -p $DOCKER_PASS"
 
