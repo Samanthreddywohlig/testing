@@ -10,6 +10,9 @@ node {
         checkout scm
     }
 
+    stage('Docker Login') {
+        sh "docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}"
+    }
     stage('Create Docker Repository') {
         try {
             def response = sh(script: """
