@@ -3,50 +3,50 @@ node {
     def DOCKER_PASS = 'wohlig@123'     // Docker Hub password
     def REPO_NAME = 'production-testing'
     def IMAGE_NAME = 'hello-world'
+    def IMAGE_TAG = '46'
     def DOCKERFILE_PATH = 'Dockerfile'  // Relative path to Dockerfile
 
     stage('Checkout') {
         checkout scm
     }
 
-    
     stage('Create Docker Repository') {
-        def responseCode = sh(script: """
-            curl -X POST \
-              -H "Content-Type: application/json" \
-              -u $DOCKER_USER:$DOCKER_PASS \
-              -d '{"name":"${REPO_NAME}","description":"Repository for production testing","is_private":false}' \
-              https://hub.docker.com/repositories/$DOCKER_USER/
-        """, returnStatus: true)
+        try {
+            def response = sh(script: """
+                curl -X POST \
+                  -H "Content-Type: application/json" \
+                  -u $DOCKER_USER:$DOCKER_PASS \
+                  -d '{"name":"${REPO_NAME}","description":"Repository for production testing","is_private":false}' \
+                  https://hub.docker.com/v2/repositories/$DOCKER_USER/
+            """, returnStdout: true)
 
-        if (responseCode != 0) {
-            error "Failed to create Docker repository. Status: ${responseCode}"
-        } else {
             echo "Docker repository '${REPO_NAME}' created successfully."
+        } catch (Exception e) {
+            error "Failed to create Docker repository: ${e.message}"
         }
     }
 
-        stages {
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
-                        def customImage = docker.build("${REPO_NAME}:${IMAGE_TAG}")
-                        customImage.push()
-                    }
-                }
-            }
+    stage('Build and Push Docker Image') {
+        try {
+            def dockerImage = docker.build("${DOCKER_USER}/${REPO_NAME}/${IMAGE_NAME}:${IMAGE_TAG}", "-f ${DOCKERFILE_PATH} .")
+            dockerImage.push()
+            echo "Successfully pushed Docker image '${DOCKER_USER}/${REPO_NAME}/${IMAGE_NAME}:${IMAGE_TAG}' to Docker Hub."
+        } catch (Exception e) {
+            error "Failed to build or push Docker image: ${e.message}"
+        } finally {
+            // Clean up: Remove the Docker image after pushing to Docker Hub
+            sh "docker rmi ${DOCKER_USER}/${REPO_NAME}/${IMAGE_NAME}:${IMAGE_TAG}"
         }
-        }
-        // Login to Docker Hub
-        sh "docker login -u $DOCKER_USER -p $DOCKER_PASS"
-
-        // Push the Docker image to Docker Hub
-        sh "docker push ${DOCKER_USER}/${REPO_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}"
     }
 
     stage('Post Build Cleanup') {
-        // Clean up: Remove the Docker image after pushing to Docker Hub
-        sh "docker rmi ${DOCKER_USER}/${REPO_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}"
+        // Additional cleanup if needed
     }
 
+    try {
+        // Logout from Docker Hub after the job finishes
+        sh "docker logout"
+    } catch (Exception ignore) {
+        // Ignore errors during logout
+    }
+}
