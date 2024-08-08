@@ -49,4 +49,4 @@ node {
         // Clean up: Remove the Docker image after pushing to Docker Hub
         sh "docker rmi ${DOCKER_USER}/${REPO_NAME}/${IMAGE_NAME}:${BUILD_NUMBER}"
     }
-}
+
