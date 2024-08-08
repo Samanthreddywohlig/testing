@@ -3,7 +3,7 @@ node {
     def DOCKER_PASS = 'wohlig@123'     // Docker Hub password
     def REPO_NAME = 'production-testing'
     def IMAGE_NAME = 'hello-world'
-    def IMAGE_TAG = '46'
+    def IMAGE_TAG = 'latest'
     def DOCKERFILE_PATH = 'Dockerfile'  // Relative path to Dockerfile
 
     stage('Checkout') {
