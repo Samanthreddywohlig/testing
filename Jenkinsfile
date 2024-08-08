@@ -9,10 +9,7 @@ node {
         checkout scm
     }
 
-    stage('Pull Docker Image') {
-        sh "docker pull hello-world"
-    }
-
+    
     stage('Create Docker Repository') {
         def responseCode = sh(script: """
             curl -X POST \
