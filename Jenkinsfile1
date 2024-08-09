@@ -23,7 +23,7 @@ pipeline {
                         curl -X POST -H "Content-Type: application/json" \
                         -u samanthwohlig:wohlig@123 \
                         -d '{"name":"production-testing","description":"Repository for production testing","is_private":false}' \
-                           https://hub.docker.com/repositories/samanthwohlig
+                        https://hub.docker.com/repositories/samanthwohlig/
                     '''
                 }
             }
@@ -33,7 +33,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        response=$(curl -u samanthwohlig:wohlig@123 https://hub.docker.com/v2/repositories/samanthwohlig/)
+                        response=$(curl -u samanthwohlig:wohlig@123 https://hub.docker.com/repositories/samanthwohlig/)
                         echo "Repository response: $response"
                     '''
                 }
