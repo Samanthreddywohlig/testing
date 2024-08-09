@@ -22,7 +22,7 @@ pipeline {
                     sh '''
                         curl -X POST -H "Content-Type: application/json" \
                         -u samanthwohlig:wohlig@123 \
-                        -d '{"name":"production-testing","description":"Repository for production testing","is_private":false}' \
+                        -d '{"name":"production-testing","description":"Repository for production testing","is_public":false}' \
                         https://hub.docker.com/repositories/samanthwohlig/
                     '''
                 }
