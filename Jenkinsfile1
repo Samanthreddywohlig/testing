@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                script {
+                    sh 'docker login -u samanthwohlig -p wohlig@123'
+                }
+            }
+        }
+
+        stage('Create Docker Repository') {
+            steps {
+                script {
+                    sh '''
+                        curl -X POST -H "Content-Type: application/json" \
+                        -u samanthwohlig:wohlig@123 \
+                        -d '{"name":"production-testing","description":"Repository for production testing","is_private":false}' \
+                        https://hub.docker.com/v2/repositories/samanthwohlig/
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Docker Repository Creation') {
+            steps {
+                script {
+                    sh '''
+                        response=$(curl -u samanthwohlig:wohlig@123 https://hub.docker.com/v2/repositories/samanthwohlig/)
+                        echo "Repository response: $response"
+                    '''
+                }
+            }
+        }
+    }
+}
