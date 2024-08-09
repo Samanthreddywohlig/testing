@@ -29,19 +29,7 @@ node {
         }
     }
 
-    stage('Build and Push Docker Image') {
-        try {
-            def dockerImage = docker.build("${DOCKER_USER}/${REPO_NAME}/${IMAGE_NAME}:${IMAGE_TAG}", "-f ${DOCKERFILE_PATH} .")
-            dockerImage.push()
-            echo "Successfully pushed Docker image '${DOCKER_USER}/${REPO_NAME}/${IMAGE_NAME}:${IMAGE_TAG}' to Docker Hub."
-        } catch (Exception e) {
-            error "Failed to build or push Docker image: ${e.message}"
-        } finally {
-            // Clean up: Remove the Docker image after pushing to Docker Hub
-            sh "docker rmi ${DOCKER_USER}/${REPO_NAME}/${IMAGE_NAME}:${IMAGE_TAG}"
-        }
-    }
-
+   curl -u samanthwohlig:wohlig@123 https://hub.docker.com/v2/repositories/samanthwohlig/
     stage('Post Build Cleanup') {
         // Additional cleanup if needed
     }
