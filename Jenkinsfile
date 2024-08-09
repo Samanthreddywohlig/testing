@@ -29,7 +29,7 @@ node {
         }
     }
 
-   curl -u samanthwohlig:wohlig@123 https://hub.docker.com/v2/repositories/samanthwohlig/
+   
     stage('Post Build Cleanup') {
         // Additional cleanup if needed
     }
