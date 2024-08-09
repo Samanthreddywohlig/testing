@@ -29,6 +29,16 @@ node {
         }
     }
 
+    stage('Verify Docker Repository Creation') {
+            steps {
+                script {
+                    sh '''
+                        response=$(curl -u samanthwohlig:wohlig@123 https://hub.docker.com/v2/repositories/samanthwohlig/)
+                        echo "Repository response: $response"
+                    '''
+                }
+            }
+        }
    
     stage('Post Build Cleanup') {
         // Additional cleanup if needed
