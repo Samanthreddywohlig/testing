@@ -12,14 +12,14 @@ node {
 
   if (params.PushToregistry == 'No') {
     stage('Build docker image') {
-      sh "sudo docker build -t ${dockerImage} -f ${dockerfile} ."
+      sh "docker build -t ${dockerImage} -f ${dockerfile} ."
     }
   }
 
   if (params.PushToregistry == 'Yes') {
     // Connect to Artifact Registry
     stage('Build docker image') {
-      sh "sudo docker build -t ${dockerImage} -f ${dockerfile} ."
+      sh "docker build -t ${dockerImage} -f ${dockerfile} ."
     }
     stage('Push docker image') {
       withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
