@@ -6,77 +6,54 @@ node {
   def dockerImage = "mukulxinaam/gcp-stag-ip-service:${imgVersion}" //Update GCR image path
   def Namespace = "default"
   def PushToregistry = false
-  stage('Clean workspace') {
-    echo "Clean Workspace::"
-    
-  }
-  // stage('Setup') {
-  //       // Set environment variable within this stage
-  //       withEnv(["PATH+EXTRA=/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin"]) {
-  //           sh '''
-  //           echo $PATH
-  //           gke-gcloud-auth-plugin
-  //           '''
-  //       }
-  //   }
+  
+stage('Clean workspace') {
+      echo "Clean Workspace::"
+    }
 
   if (params.PushToregistry == 'No'){
     stage('Build docker image') {
-      sh "docker build -t ${dockerImage} -f ${dockerfile} ."
+     sh "docker build -t ${dockerImage} -f ${dockerfile} ."
     }
   }
   
-  if (params.PushToregistry == 'Yes'){
-    // Connect to Artifact Registry
+ if (params.PushToregistry == 'Yes'){
     stage('Build docker image') {
       sh "docker build -t ${dockerImage} -f ${dockerfile} ."
     }
-    // Push Docker Image to Artifact Registry
-    stage('Authenticate to Google Cloud using workload identity federation') {
-    }
     stage('Push docker image') {
-      withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
-        sh 'docker login -u $USERNAME -p $PASSWORD'
-      }
-        sh "docker push ${dockerImage}"
+       withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
+             sh 'docker login -u $USERNAME -p $PASSWORD'
+        }
+            sh "docker push ${dockerImage}"
+    }
+    stage('Delete local docker image') {
+      sh "docker rmi ${dockerImage}"
     }
   }
-  stage('Delpoying the App on GKE') {
-  withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-    sh 'whoami'
-    sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
-    sh "chmod +x changeTagProd.sh"
-    sh "./changeTagProd.sh ${imgVersion}"
-  
-  //Update kubeconfig
-//     sh 'gcloud container clusters get-credentials clst-xf-staging --region asia-south1 --project prj-xf-mzaalo-staging'
-//    sh 'ls -l jenkins-script-prod/kubectl'
-//  sh 'pwd'
-
-//   sh 'cat jenkins-script-prod/kubectl/ip-service-app-pod.yaml'
-
-  //Apply kubernetes configuration 
-  sh '/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin/gke-gcloud-auth-plugin'
-  sh '''
-        #!/bin/bash
-        ls ~ -a
-        '''
-  sh 'cat ~/.bashrc'
-   withEnv(["PATH+EXTRA=/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin"]) {
+  stage('Deploying the App on GKE') {
+        withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+            sh 'whoami'
+            sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+            sh "chmod +x jenkins-script-stage/changeTag.sh"
+            sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
+            
+            // Apply kubernetes configuration
             sh '''
-            echo $PATH
-            gke-gcloud-auth-plugin
-            kubectl get pods
-            kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml -n staging
+                #!/bin/bash
+                ls ~ -a
             '''
+            sh 'cat ~/.bashrc'
+            withEnv(["PATH+EXTRA=/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin"]) {
+            // /var/lib/jenkins/workspace/gcp-search-staging/jenkins-script-stage/kubectl:/var/lib/jenkins/workspace/search-staging/google-cloud-sdk/bin
+                sh '''
+                echo $PATH
+                gke-gcloud-auth-plugin
+                kubectl get pods
+                kubectl apply -f jenkins-script-stage/kubectl/ip-service-production.yaml -n staging
+                '''
+                sh 'kubectl get pods -n staging'
+            }
         }
-  }
-}
-
-  // stage('Mail Send Conformation') {
-  //   mail (to: 'samanth.reddy@wohlig.com',
-  //     subject: "Xfinite-mzaalo-ott-ip-service-backend-stag Job '${env.JOB_NAME}' (${env.BUILD_NUMBER})",
-  //     body: "STARTED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]':<a href='${env.BUILD_URL}'>${env.JOB_NAME} [${env.BUILD_NUMBER}]"
-  //   )
-  // }
+    }
 }
