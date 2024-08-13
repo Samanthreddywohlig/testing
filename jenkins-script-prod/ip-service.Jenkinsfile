@@ -45,7 +45,7 @@ node {
             '''
             sh 'cat ~/.bashrc'
             withEnv(["PATH+EXTRA=/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin"]) {
-             /var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin/
+            // /var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin/
                 sh '''
                 echo $PATH
                 gke-gcloud-auth-plugin
