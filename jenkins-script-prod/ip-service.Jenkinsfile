@@ -22,38 +22,38 @@ node {
       sh "docker build -t ${dockerImage} -f ${dockerfile} ."
     }
     stage('Push docker image') {
-      withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'docker login -u $USERNAME -p $PASSWORD'
-      }
-      sh "docker push ${dockerImage}"
+       withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
+          sh 'docker login -u $USERNAME -p $PASSWORD'
+        }
+        sh "docker push ${dockerImage}"
     }
     stage('Delete local docker image') {
       sh "docker rmi ${dockerImage}"
     }
   }
-
-  stage('Deploying the App on GKE') {
-    withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-      sh 'whoami'
-      sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
-      sh "chmod +x changeTagProd.sh"
-      sh "./changeTagProd.sh ${imgVersion}"
-
-      // Apply Kubernetes configuration 
-      sh '/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin/gke-gcloud-auth-plugin'
-      sh '''
-        #!/bin/bash
-        ls ~ -a
-      '''
-      sh 'cat ~/.bashrc'
-      withEnv(["PATH+EXTRA=/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin"]) {
-        sh '''
-          echo $PATH
-          gke-gcloud-auth-plugin
-          kubectl get pods
-          kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml -n staging
-        '''
-      }
+       stage('Deploying the App on GKE') {
+        withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+            sh 'whoami'
+            sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+            sh "chmod +x jenkins-script-stage/changeTag.sh"
+            sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
+            
+            // Apply kubernetes configuration
+            sh '''
+                #!/bin/bash
+                ls ~ -a
+            '''
+            sh 'cat ~/.bashrc'
+            withEnv(["PATH+EXTRA=/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin"]) {
+             /var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin/
+                sh '''
+                echo $PATH
+                gke-gcloud-auth-plugin
+                kubectl get pods
+                kubectl apply -f jenkins-script-stage/kubectl/platform-core-staging.yaml -n staging
+                '''
+                sh 'kubectl get pods -n staging'
+            }
+        }
     }
-  }
 }
