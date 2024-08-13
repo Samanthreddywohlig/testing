@@ -55,13 +55,13 @@ node {
 //   sh 'cat jenkins-script-prod/kubectl/ip-service-app-pod.yaml'
 
   //Apply kubernetes configuration 
-  sh '/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin/gke-gcloud-auth-plugin'
+//  sh '/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin/gke-gcloud-auth-plugin'
   sh '''
         #!/bin/bash
         ls ~ -a
         '''
   sh 'cat ~/.bashrc'
-   withEnv(["PATH+EXTRA=/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin"]) {
+    withEnv(["PATH+EXTRA=/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin"]) {
             sh '''
             echo $PATH
             gke-gcloud-auth-plugin
