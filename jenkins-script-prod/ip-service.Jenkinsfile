@@ -71,11 +71,4 @@ node {
         }
   }
 }
-
-  // stage('Mail Send Conformation') {
-  //   mail (to: 'samanth.reddy@wohlig.com',
-  //     subject: "Xfinite-mzaalo-ott-ip-service-backend-stag Job '${env.JOB_NAME}' (${env.BUILD_NUMBER})",
-  //     body: "STARTED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]':<a href='${env.BUILD_URL}'>${env.JOB_NAME} [${env.BUILD_NUMBER}]"
-  //   )
-  // }
 }
