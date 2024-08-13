@@ -6,54 +6,55 @@ node {
   def dockerImage = "mukulxinaam/gcp-stag-ip-service:${imgVersion}" //Update GCR image path
   def Namespace = "default"
   def PushToregistry = false
-  
-stage('Clean workspace') {
-      echo "Clean Workspace::"
-    }
+  stage('Clean workspace') {
+    echo "Clean Workspace::"
+    
+  }
 
   if (params.PushToregistry == 'No'){
     stage('Build docker image') {
-     sh "docker build -t ${dockerImage} -f ${dockerfile} ."
+      sh "docker build -t ${dockerImage} -f ${dockerfile} ."
     }
   }
   
- if (params.PushToregistry == 'Yes'){
+  if (params.PushToregistry == 'Yes'){
+    // Connect to Artifact Registry
     stage('Build docker image') {
       sh "docker build -t ${dockerImage} -f ${dockerfile} ."
     }
-    stage('Push docker image') {
-       withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
-             sh 'docker login -u $USERNAME -p $PASSWORD'
-        }
-            sh "docker push ${dockerImage}"
+    // Push Docker Image to Artifact Registry
+    stage('Authenticate to Google Cloud using workload identity federation') {
     }
-    stage('Delete local docker image') {
-      sh "docker rmi ${dockerImage}"
+    stage('Push docker image') {
+      withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
+        sh 'docker login -u $USERNAME -p $PASSWORD'
+      }
+        sh "docker push ${dockerImage}"
     }
   }
-  stage('Deploying the App on GKE') {
-        withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-            sh 'whoami'
-            sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
-            sh "chmod +x jenkins-script-stage/changeTag.sh"
-            sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
-            
-            // Apply kubernetes configuration
+  stage('Delpoying the App on GKE') {
+  withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+    sh 'whoami'
+    sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+    sh "chmod +x changeTagProd.sh"
+    sh "./changeTagProd.sh ${imgVersion}"
+  
+
+  //Apply kubernetes configuration 
+  sh '/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin/gke-gcloud-auth-plugin'
+  sh '''
+        #!/bin/bash
+        ls ~ -a
+        '''
+  sh 'cat ~/.bashrc'
+   withEnv(["PATH+EXTRA=/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin"]) {
             sh '''
-                #!/bin/bash
-                ls ~ -a
+            echo $PATH
+            gke-gcloud-auth-plugin
+            kubectl get pods
+            kubectl apply -f jenkins-script-prod/kubectl/ip-service-app-pod.yaml -n staging
             '''
-            sh 'cat ~/.bashrc'
-            withEnv(["PATH+EXTRA=/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin"]) {
-            // /var/lib/jenkins/workspace/gcp-search-staging/jenkins-script-stage/kubectl:/var/lib/jenkins/workspace/search-staging/google-cloud-sdk/bin
-                sh '''
-                echo $PATH
-                gke-gcloud-auth-plugin
-                kubectl get pods
-                kubectl apply -f jenkins-script-stage/kubectl/ip-service-production.yaml -n staging
-                '''
-                sh 'kubectl get pods -n staging'
-            }
         }
-    }
+  }
+}
 }
