@@ -22,14 +22,14 @@ node {
     stage('Build docker image') {
       sh "docker build -t ${dockerImage} -f ${dockerfile} ."
     }
-    // Push Docker Image to Artifact Registry
-    stage('Authenticate to Google Cloud using workload identity federation') {
+     stage('Push docker image') {
+       withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
+             sh 'docker login -u $USERNAME -p $PASSWORD'
+        }
+            sh "docker push ${dockerImage}"
     }
-    stage('Push docker image') {
-      withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
-        sh 'docker login -u $USERNAME -p $PASSWORD'
-      }
-        sh "docker push ${dockerImage}"
+    stage('Delete local docker image') {
+      sh "docker rmi ${dockerImage}"
     }
   }
   stage('Delpoying the App on GKE') {
@@ -41,7 +41,7 @@ node {
   
 
   //Apply kubernetes configuration 
-  sh '/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin/gke-gcloud-auth-plugin'
+ // sh '/var/lib/jenkins/workspace/ipservice-staging/jenkins-script-prod/kubectl/google-cloud-sdk/bin/gke-gcloud-auth-plugin'
   sh '''
         #!/bin/bash
         ls ~ -a
