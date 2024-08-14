@@ -1,23 +1,20 @@
-node {
-  
-  checkout scm
-  def imgVersion = "staging-${currentBuild.number}"
-  def dockerfile = "jenkins-script-stage/ip-service.Dockerfile"
-  def dockerImage = "samanthwohlig/production-plan-private1:${imgVersion}"
-  def Namespace = "default"
-  def PushToregistry = false
+pipeline {
+    agent any
 
-environment {
+    environment {
         DOCKER_CREDENTIALS_ID = 'dockerhub-samanth'   // Jenkins credentials ID for Docker Hub
         REPO_NAME = 'production-plan-private1'          // Docker Hub repository name
         IMAGE_NAME = "samanthwohlig/${REPO_NAME}:hello-world-${env.BUILD_NUMBER}"
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
     }
 
-stages {
-    stage('Clean workspace') {
-      echo "Clean Workspace::"
-    }
+    stages {
+        stage('Clean workspace') {
+            steps {
+                echo "Cleaning Workspace..."
+                cleanWs()  // Optional: This will clean the workspace.
+            }
+        }
 
         stage('Check Docker Hub Repository') {
             steps {
@@ -51,52 +48,78 @@ stages {
                 }
             }
         }
-    }
-}
-  if (params.PushToregistry == 'No'){
-    stage('Build docker image') {
-     sh "docker build -t ${dockerImage} -f ${dockerfile} ."
-    }
-  }
-  
- if (params.PushToregistry == 'Yes'){
-    stage('Build docker image') {
-      sh "docker build -t ${dockerImage} -f ${dockerfile} ."
-    }
-    stage('Push docker image') {
 
-       withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
-             sh 'docker login -u $USERNAME -p $PASSWORD'
+        stage('Build docker image') {
+            when {
+                expression {
+                    return params.PushToregistry == 'Yes' || params.PushToregistry == 'No'
+                }
+            }
+            steps {
+                script {
+                    def imgVersion = "staging-${currentBuild.number}"
+                    def dockerfile = "jenkins-script-stage/ip-service.Dockerfile"
+                    def dockerImage = "samanthwohlig/production-plan-private1:${imgVersion}"
+                    
+                    sh "docker build -t ${dockerImage} -f ${dockerfile} ."
+                }
+            }
         }
-            sh "docker push ${dockerImage}"
-    }
-  stage('Delete local docker image') {
-      sh "docker rmi ${dockerImage}"
-    }
-  }
-stage('Deploying the App on GKE') {
-        withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-            sh 'whoami'
-            sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
-            sh "chmod +x jenkins-script-stage/changeTag.sh"
-            sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
-            
-            // Apply kubernetes configuration
-            sh '''
-                #!/bin/bash
-                ls ~ -a
-            '''
-            sh 'cat ~/.bashrc'
-            withEnv(["PATH+EXTRA=/usr/local/google-cloud-sdk/bin"]) {
-            // /var/lib/jenkins/workspace/gcp-search-staging/jenkins-script-stage/kubectl:/var/lib/jenkins/workspace/search-staging/google-cloud-sdk/bin
-                sh '''
-                echo $PATH
-                gke-gcloud-auth-plugin
-                kubectl get pods
-                kubectl apply -f jenkins-script-stage/kubectl/ip-service-stage.yaml -n staging
-                '''
-                sh 'kubectl get pods -n staging'
+
+        stage('Push docker image') {
+            when {
+                expression {
+                    return params.PushToregistry == 'Yes'
+                }
+            }
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                        sh 'docker login -u $USERNAME -p $PASSWORD'
+                    }
+                    sh "docker push ${dockerImage}"
+                }
+            }
+        }
+
+        stage('Delete local docker image') {
+            when {
+                expression {
+                    return params.PushToregistry == 'Yes'
+                }
+            }
+            steps {
+                script {
+                    def imgVersion = "staging-${currentBuild.number}"
+                    def dockerImage = "samanthwohlig/production-plan-private1:${imgVersion}"
+                    sh "docker rmi ${dockerImage}"
+                }
+            }
+        }
+
+        stage('Deploying the App on GKE') {
+            steps {
+                withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    script {
+                        sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+                        sh "chmod +x jenkins-script-stage/changeTag.sh"
+                        sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
+                        
+                        // Apply Kubernetes configuration
+                        withEnv(["PATH+EXTRA=/usr/local/google-cloud-sdk/bin"]) {
+                            sh '''
+                                echo $PATH
+                                gke-gcloud-auth-plugin
+                                kubectl get pods
+                                kubectl apply -f jenkins-script-stage/kubectl/ip-service-stage.yaml -n staging
+                            '''
+                            sh 'kubectl get pods -n staging'
+                        }
+                    }
+                }
             }
         }
     }
 
+    // Post actions can be added here if needed
+}
