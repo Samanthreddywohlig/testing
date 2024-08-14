@@ -1,9 +1,9 @@
 pipeline {
     agent any
     environment {
-        DOCKER_CREDENTIALS_ID = 'dockerhub-samanth'   // Jenkins credentials ID for Docker Hub
-        REPO_NAME = 'production-plan-private1'        // Docker Hub repository name
-        IMAGE_NAME = "samanthwohlig/${REPO_NAME}:production-plan-private1:latest-${env.BUILD_NUMBER}"
+        DOCKER_CREDENTIALS_ID = 'dockerhub-samanth'  // Jenkins credentials ID for Docker Hub
+        REPO_NAME = 'production-plan-private1'       // Docker Hub repository name
+        IMAGE_NAME = "samanthwohlig/${REPO_NAME}:production-plan-private1-${env.BUILD_NUMBER}"
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
     }
     stages {
@@ -13,7 +13,7 @@ pipeline {
             }
         }
         
-        stage('Clean workspace') {
+        stage('Clean Workspace') {
             steps {
                 echo "Cleaning Workspace..."
                 cleanWs()
@@ -53,16 +53,17 @@ pipeline {
             }
         }
 
-        stage('Build docker image') {
+        stage('Build Docker Image') {
             steps {
                 script {
                     def dockerImage = "${IMAGE_NAME}"
+                    // Adjust the Dockerfile path if necessary
                     sh "docker build -t ${dockerImage} -f ip-service.Dockerfile ."
                 }
             }
         }
 
-        stage('Push docker image') {
+        stage('Push Docker Image') {
             when {
                 expression { params.PushToregistry == 'Yes' }
             }
@@ -77,7 +78,7 @@ pipeline {
             }
         }
 
-        stage('Delete local docker image') {
+        stage('Delete Local Docker Image') {
             when {
                 expression { params.PushToregistry == 'Yes' }
             }
