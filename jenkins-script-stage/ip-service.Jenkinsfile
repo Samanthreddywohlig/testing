@@ -91,19 +91,19 @@ pipeline {
         }
 
         // Uncomment and configure the following stage if you need to deploy to GKE
-        // stage('Deploying the App on GKE') {
-        //     steps {
-        //         withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-        //             sh 'whoami'
-        //             sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
-        //             sh "chmod +x jenkins-script-stage/changeTag.sh"
-        //             sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
-        //             sh 'kubectl get pods -n staging'
-        //             sh 'kubectl apply -f jenkins-script-stage/kubectl/ip-service-stage.yaml -n staging'
-        //             sh 'kubectl get pods -n staging'
-        //         }
-        //     }
-        // }
+        stage('Deploying the App on GKE') {
+             steps {
+                 withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                     sh 'whoami'
+                     sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+                     sh "chmod +x jenkins-script-stage/changeTag.sh"
+                     sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
+                     sh 'kubectl get pods -n staging'
+                     sh 'kubectl apply -f jenkins-script-stage/kubectl/ip-service-stage.yaml -n staging'
+                     sh 'kubectl get pods -n staging'
+                 }
+             }
+         }
     }
     post {
         failure {
