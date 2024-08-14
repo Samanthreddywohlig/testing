@@ -18,16 +18,7 @@ pipeline {
                 cleanWs()
             }
         }
-        stage('Verify Checkout') {
-            steps {
-                sh 'ls -l ip-service.Dockerfile'
-            }
-        }
-        stage('List Workspace') {
-            steps {
-                sh 'ls -R'
-            }
-        }
+        
         stage('Check Docker Hub Repository') {
             steps {
                 script {
