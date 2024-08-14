@@ -1,8 +1,8 @@
 pipeline {
     agent any
     environment {
-        DOCKER_CREDENTIALS_ID = 'dockerhub-samanth'  // Jenkins credentials ID for Docker Hub
-        REPO_NAME = 'production-plan-private1'       // Docker Hub repository name
+        DOCKER_CREDENTIALS_ID = 'dockerhub-samanth'   // Jenkins credentials ID for Docker Hub
+        REPO_NAME = 'production-plan-private1'        // Docker Hub repository name
         IMAGE_NAME = "samanthwohlig/${REPO_NAME}:production-plan-private1-${env.BUILD_NUMBER}"
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
     }
@@ -12,14 +12,30 @@ pipeline {
                 checkout scm
             }
         }
-        
+
+        stage('List Files After Checkout') {
+            steps {
+                echo "Listing files in the workspace after checkout..."
+                sh 'ls -la'
+            }
+        }
+
+        stage('Verify Directory') {
+            steps {
+                echo "Listing files in the directory structure..."
+                sh 'ls -la jenkins-script-prod'  // Check if the directory exists
+                sh 'ls -la jenkins-script-stage' // Check if the directory exists
+                sh 'ls -la k8s'                  // Additional directories
+            }
+        }
+
         stage('Clean Workspace') {
             steps {
                 echo "Cleaning Workspace..."
                 cleanWs()
             }
         }
-        
+
         stage('Check Docker Hub Repository') {
             steps {
                 script {
@@ -57,8 +73,7 @@ pipeline {
             steps {
                 script {
                     def dockerImage = "${IMAGE_NAME}"
-                    // Adjust the Dockerfile path if necessary
-                    sh "docker build -t ${dockerImage} -f ip-service.Dockerfile ."
+                    sh "docker build -t ${dockerImage} -f jenkins-script-stage/ip-service.Dockerfile ."
                 }
             }
         }
