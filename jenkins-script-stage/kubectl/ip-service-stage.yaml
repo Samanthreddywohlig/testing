@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: ip-service
-          image: mukulxinaam/gcp-stag-ip-service:tagVersion
+          image: samanthwohlig/production-plan-private1:tagVersion
           envFrom:
             - configMapRef:
                 name: ip-service
