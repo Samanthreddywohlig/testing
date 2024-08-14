@@ -112,8 +112,9 @@ pipeline {
                 kubectl apply -f jenkins-script-stage/kubectl/ip-service-stage.yaml -n staging
                 '''
                 sh 'kubectl get pods -n staging'
-            }
+                }
+           }
         }
     }
 }
-}
+
