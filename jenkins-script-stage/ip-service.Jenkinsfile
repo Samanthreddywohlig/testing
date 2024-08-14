@@ -99,4 +99,4 @@ stage('Deploying the App on GKE') {
             }
         }
     }
-}
+
