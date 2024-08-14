@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         DOCKER_CREDENTIALS_ID = 'dockerhub-samanth'
-        REPO_NAME = 'production-plan-private1'
+        REPO_NAME = 'production-plan-private2'
         IMAGE_NAME = "samanthwohlig/${REPO_NAME}:production-plan-private2-${env.BUILD_NUMBER}"
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
     }
