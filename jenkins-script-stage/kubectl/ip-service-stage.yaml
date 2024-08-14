@@ -1,24 +1,24 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: ip-service
+  name: ip-service-test
   namespace: staging
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ip-service
+      app: ip-service-test
   template:
     metadata:
       labels:
-        app: ip-service
+        app: ip-service-test
     spec:
       containers:
-        - name: ip-service
+        - name: ip-service-test
           image: samanthwohlig/ip-service-production-test:tagVersion
           envFrom:
             - configMapRef:
-                name: ip-service
+                name: ip-service-test
           ports:
             - containerPort: 3002
       imagePullSecrets:
@@ -27,7 +27,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ip-service
+  name: ip-service-test
   namespace: staging
   annotations:
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
@@ -38,4 +38,4 @@ spec:
       targetPort: 3002
       protocol: TCP
   selector:
-    app: ip-service
+    app: ip-service-test
