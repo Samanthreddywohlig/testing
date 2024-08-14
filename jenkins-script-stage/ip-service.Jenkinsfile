@@ -6,6 +6,7 @@ pipeline {
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
         DOCKER_USERNAME = 'samanthwohlig'
         DOCKER_PASSWORD = 'wohlig@123'
+        IMG_VERSION = "${env.BUILD_NUMBER}"  // Define imgVersion or replace it with appropriate value
     }
     stages {
         stage('Checkout and List Files') {
@@ -105,14 +106,13 @@ pipeline {
             }
         }
 
-        // Uncomment and configure the following stage if you need to deploy to GKE
         stage('Deploying the App on GKE') {
             steps {
                 withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     sh 'whoami'
                     sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
                     sh "chmod +x jenkins-script-stage/changeTag.sh"
-                    sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
+                    sh "./jenkins-script-stage/changeTag.sh ${IMG_VERSION}"
                     sh 'kubectl get pods -n staging'
                     sh 'kubectl apply -f jenkins-script-stage/kubectl/ip-service-stage.yaml -n staging'
                     sh 'kubectl get pods -n staging'
