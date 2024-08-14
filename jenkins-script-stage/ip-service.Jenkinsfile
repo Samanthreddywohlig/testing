@@ -7,16 +7,20 @@ pipeline {
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
     }
     stages {
-        stage('Checkout SCM') {
-            steps {
-                checkout scm
-            }
-        }
+        stage('Checkout and List Files') {
+    steps {
+        checkout scm
+        echo "Listing files in the workspace after checkout..."
+        sh 'ls -la'
+    }
+}
+
 
         stage('List Files After Checkout') {
             steps {
                 echo "Listing files in the workspace after checkout..."
                 sh 'ls -la'
+                sh 'pwd'
             }
         }
 
@@ -26,15 +30,17 @@ pipeline {
                 sh 'ls -la jenkins-script-prod'  // Check if the directory exists
                 sh 'ls -la jenkins-script-stage' // Check if the directory exists
                 sh 'ls -la k8s'                  // Additional directories
+                sh 'pwd'
             }
         }
 
-        stage('Clean Workspace') {
-            steps {
-                echo "Cleaning Workspace..."
-                cleanWs()
-            }
+        stage('Docker Login') {
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-samanth', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+            sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
         }
+    }
+}
 
         stage('Check Docker Hub Repository') {
             steps {
@@ -72,27 +78,28 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
+                    sh 'pwd'
+                    sh 'ls -la'
                     def dockerImage = "${IMAGE_NAME}"
-                    sh "docker build -t ${dockerImage} -f jenkins-script-stage/ip-service.Dockerfile ."
+                    sh "docker build -t ${dockerImage} -f  jenkins-script-stage/ip-service.Dockerfile ."
                 }
             }
         }
 
         stage('Push Docker Image') {
-            when {
-                expression { params.PushToregistry == 'Yes' }
+    when {
+        expression { params.PushToregistry == 'Yes' }
+    }
+    steps {
+        script {
+            def dockerImage = "${IMAGE_NAME}"
+            withCredentials([usernamePassword(credentialsId: 'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                sh 'echo $PASSWORD | docker login -u $USERNAME --password-stdin'
             }
-            steps {
-                script {
-                    def dockerImage = "${IMAGE_NAME}"
-                    withCredentials([usernamePassword(credentialsId: 'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                        sh 'docker login -u $USERNAME -p $PASSWORD'
-                    }
-                    sh "docker push ${dockerImage}"
-                }
-            }
+            sh "docker push ${dockerImage}"
         }
-
+    }
+}
         stage('Delete Local Docker Image') {
             when {
                 expression { params.PushToregistry == 'Yes' }
