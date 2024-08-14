@@ -50,8 +50,9 @@ stages {
                     }
                 }
             }
-        
-
+        }
+    }
+}
   if (params.PushToregistry == 'No'){
     stage('Build docker image') {
      sh "docker build -t ${dockerImage} -f ${dockerfile} ."
@@ -98,7 +99,4 @@ stage('Deploying the App on GKE') {
             }
         }
     }
-}
-}
-}
 }
