@@ -20,7 +20,7 @@ pipeline {
         }
         stage('Verify Checkout') {
             steps {
-                sh 'ls -l jenkins-script-stage'
+                sh 'ls -l ip-service.Dockerfile'
             }
         }
         stage('List Workspace') {
