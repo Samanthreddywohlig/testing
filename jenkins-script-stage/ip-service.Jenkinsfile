@@ -1,9 +1,9 @@
 pipeline {
     agent any
-    environment {
-        DOCKER_CREDENTIALS_ID = 'dockerhub-samanth'
-        REPO_NAME = 'production-plan-private2'
-        IMAGE_NAME = "samanthwohlig/${REPO_NAME}:production-plan-private2-${env.BUILD_NUMBER}"
+   environment {
+        DOCKER_CREDENTIALS_ID = 'dockerhub-samanth'   // Jenkins credentials ID for Docker Hub
+        REPO_NAME = 'production-plan-private1'          // Docker Hub repository name
+        IMAGE_NAME = "samanthwohlig/${REPO_NAME}:hello-world-${env.BUILD_NUMBER}"
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
     }
     stages {
@@ -19,16 +19,18 @@ pipeline {
             }
         }
         
-        stage('Check Docker Hub Repository') {
+    stage('Check Docker Hub Repository') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: dockerhub-samanth , usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        // Check if the repository exists
                         def repoCheckCmd = """
                         curl -s -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} -o /dev/null -w "%{http_code}" ${DOCKER_API_URL}/${DOCKER_USERNAME}/${REPO_NAME}/
                         """
                         def httpResponseCode = sh(script: repoCheckCmd, returnStdout: true).trim()
 
                         if (httpResponseCode == '404') {
+                            // Create the repository if it does not exist
                             echo "Repository ${REPO_NAME} does not exist. Creating it now."
                             def createRepoCmd = """
                             curl -X POST -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} ${DOCKER_API_URL} \
