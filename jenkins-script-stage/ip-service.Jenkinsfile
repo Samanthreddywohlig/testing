@@ -1,25 +1,26 @@
 pipeline {
     agent any
-   environment {
+    environment {
         DOCKER_CREDENTIALS_ID = 'dockerhub-samanth'   // Jenkins credentials ID for Docker Hub
-        REPO_NAME = 'production-plan-private1'          // Docker Hub repository name
-        IMAGE_NAME = "samanthwohlig/${REPO_NAME}:hello-world-${env.BUILD_NUMBER}"
+        REPO_NAME = 'production-plan-private1'        // Docker Hub repository name
+        IMAGE_NAME = "samanthwohlig/${REPO_NAME}:production-plan-private1:latest-${env.BUILD_NUMBER}"
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
     }
     stages {
-
-stage('Checkout SCM') {
+        stage('Checkout SCM') {
             steps {
                 checkout scm
             }
         }
+        
         stage('Clean workspace') {
             steps {
                 echo "Cleaning Workspace..."
                 cleanWs()
             }
         }
-    stage('Check Docker Hub Repository') {
+        
+        stage('Check Docker Hub Repository') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
@@ -52,32 +53,43 @@ stage('Checkout SCM') {
             }
         }
 
-    
-        
         stage('Build docker image') {
             steps {
-                sh "docker build -t ${dockerImage} -f ip-service.Dockerfile ."
+                script {
+                    def dockerImage = "${IMAGE_NAME}"
+                    sh "docker build -t ${dockerImage} -f ip-service.Dockerfile ."
+                }
             }
         }
+
         stage('Push docker image') {
             when {
                 expression { params.PushToregistry == 'Yes' }
             }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    sh 'docker login -u $USERNAME -p $PASSWORD'
+                script {
+                    def dockerImage = "${IMAGE_NAME}"
+                    withCredentials([usernamePassword(credentialsId: 'devops-docker', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                        sh 'docker login -u $USERNAME -p $PASSWORD'
+                    }
+                    sh "docker push ${dockerImage}"
                 }
-                sh "docker push ${dockerImage}"
             }
         }
+
         stage('Delete local docker image') {
             when {
                 expression { params.PushToregistry == 'Yes' }
             }
             steps {
-                sh "docker rmi ${dockerImage}"
+                script {
+                    def dockerImage = "${IMAGE_NAME}"
+                    sh "docker rmi ${dockerImage}"
+                }
             }
         }
+
+        // Uncomment and configure the following stage if you need to deploy to GKE
         // stage('Deploying the App on GKE') {
         //     steps {
         //         withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
