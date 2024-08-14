@@ -3,13 +3,54 @@ node {
   checkout scm
   def imgVersion = "staging-${currentBuild.number}"
   def dockerfile = "jenkins-script-stage/ip-service.Dockerfile"
-  def dockerImage = "mukulxinaam/gcp-stag-ip-service:${imgVersion}"
+  def dockerImage = "samanthwohlig/production-plan-private1:${imgVersion}"
   def Namespace = "default"
   def PushToregistry = false
+
+environment {
+        DOCKER_CREDENTIALS_ID = 'dockerhub-samanth'   // Jenkins credentials ID for Docker Hub
+        REPO_NAME = 'production-plan-private1'          // Docker Hub repository name
+        IMAGE_NAME = "samanthwohlig/${REPO_NAME}:hello-world-${env.BUILD_NUMBER}"
+        DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
+    }
+
 
     stage('Clean workspace') {
       echo "Clean Workspace::"
     }
+stages {
+        stage('Check Docker Hub Repository') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        // Check if the repository exists
+                        def repoCheckCmd = """
+                        curl -s -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} -o /dev/null -w "%{http_code}" ${DOCKER_API_URL}/${DOCKER_USERNAME}/${REPO_NAME}/
+                        """
+                        def httpResponseCode = sh(script: repoCheckCmd, returnStdout: true).trim()
+
+                        if (httpResponseCode == '404') {
+                            // Create the repository if it does not exist
+                            echo "Repository ${REPO_NAME} does not exist. Creating it now."
+                            def createRepoCmd = """
+                            curl -X POST -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} ${DOCKER_API_URL} \
+                            -H "Content-Type: application/json" \
+                            -d '{
+                                "name": "${REPO_NAME}",
+                                "description": "A private repository for ${REPO_NAME}",
+                                "is_public": true
+                            }'
+                            """
+                            sh(script: createRepoCmd)
+                        } else if (httpResponseCode == '200') {
+                            echo "Repository ${REPO_NAME} already exists."
+                        } else {
+                            error "Unexpected response from Docker Hub: ${httpResponseCode}"
+                        }
+                    }
+                }
+            }
+        }
 
   if (params.PushToregistry == 'No'){
     stage('Build docker image') {
