@@ -14,11 +14,11 @@ environment {
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
     }
 
-
+stages {
     stage('Clean workspace') {
       echo "Clean Workspace::"
     }
-stages {
+
         stage('Check Docker Hub Repository') {
             steps {
                 script {
@@ -50,7 +50,7 @@ stages {
                     }
                 }
             }
-        }
+        
 
   if (params.PushToregistry == 'No'){
     stage('Build docker image') {
