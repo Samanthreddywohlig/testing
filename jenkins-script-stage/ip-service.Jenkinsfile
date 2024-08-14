@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         REPO_NAME = 'production-plan-private1'        // Docker Hub repository name
-        IMAGE_NAME = "samanthwohlig/${REPO_NAME}:ip-service-production-testing-${env.BUILD_NUMBER}"
+        IMAGE_NAME = "samanthwohlig/${REPO_NAME}:production-plan-private1-${env.BUILD_NUMBER}"
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
         DOCKER_USERNAME = 'samanthwohlig'
         DOCKER_PASSWORD = 'wohlig@123'
@@ -11,10 +11,30 @@ pipeline {
         stage('Checkout and List Files') {
             steps {
                 checkout scm
-                
+                echo "Listing files in the workspace after checkout..."
+                sh 'ls -la'
             }
         }
-   stage('Docker Login') {
+
+        stage('List Files After Checkout') {
+            steps {
+                echo "Listing files in the workspace after checkout..."
+                sh 'ls -la'
+                sh 'pwd'
+            }
+        }
+
+        stage('Verify Directory') {
+            steps {
+                echo "Listing files in the directory structure..."
+                sh 'ls -la jenkins-script-prod'
+                sh 'ls -la jenkins-script-stage'
+                sh 'ls -la k8s'
+                sh 'pwd'
+            }
+        }
+
+        stage('Docker Login') {
             steps {
                 sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
             }
@@ -85,30 +105,27 @@ pipeline {
             }
         }
 
-       stage('Deploying the App on GKE') {
-        withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-            sh 'whoami'
-            sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
-            sh "chmod +x jenkins-script-stage/changeTag.sh"
-            sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
-            
-            // Apply kubernetes configuration
-            sh '''
-                #!/bin/bash
-                ls ~ -a
-            '''
-            sh 'cat ~/.bashrc'
-            withEnv(["PATH+EXTRA=/usr/local/google-cloud-sdk/bin"]) {
-            // /var/lib/jenkins/workspace/gcp-search-staging/jenkins-script-stage/kubectl:/var/lib/jenkins/workspace/search-staging/google-cloud-sdk/bin
-                sh '''
-                echo $PATH
-                gke-gcloud-auth-plugin
-                kubectl get pods
-                kubectl apply -f jenkins-script-stage/kubectl/ip-service-stage.yaml -n staging
-                '''
-                sh 'kubectl get pods -n staging'
+        // Uncomment and configure the following stage if you need to deploy to GKE
+        stage('Deploying the App on GKE') {
+            steps {
+                withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    sh 'whoami'
+                    sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+                    sh "chmod +x jenkins-script-stage/changeTag.sh"
+                    sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
+                    sh 'kubectl get pods -n staging'
+                    sh 'kubectl apply -f jenkins-script-stage/kubectl/ip-service-stage.yaml -n staging'
+                    sh 'kubectl get pods -n staging'
                 }
-           }
+            }
+        }
+    }
+    post {
+        failure {
+            echo 'Pipeline failed.'
+        }
+        success {
+            echo 'Pipeline succeeded.'
         }
     }
 }
