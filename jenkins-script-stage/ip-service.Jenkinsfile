@@ -7,18 +7,6 @@ pipeline {
         DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
     }
     stages {
-        stage('Checkout SCM') {
-            steps {
-                checkout scm
-            }
-        }
-        stage('Clean workspace') {
-            steps {
-                echo "Cleaning Workspace..."
-                cleanWs()
-            }
-        }
-        
     stage('Check Docker Hub Repository') {
             steps {
                 script {
@@ -51,6 +39,19 @@ pipeline {
                 }
             }
         }
+
+    stage('Checkout SCM') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Clean workspace') {
+            steps {
+                echo "Cleaning Workspace..."
+                cleanWs()
+            }
+        }
+        
         stage('Build docker image') {
             steps {
                 sh "docker build -t ${dockerImage} -f ip-service.Dockerfile ."
