@@ -100,6 +100,25 @@ node {
             }
         }
         */
+        
+        stage('Notify') {
+    try {
+        def buildResult = currentBuild.result ?: 'UNSTABLE'
+        def emailSubject = buildResult == 'SUCCESS' ? "Jenkins Pipeline Succeeded: ${env.JOB_NAME} #${env.BUILD_NUMBER}" : "Jenkins Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+        def emailBody = "The pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER} ${buildResult.toLowerCase()}.\n\nCheck Jenkins for more details."
+        
+        emailext(
+            to: 'samanth.reddy@wohlig.com',
+            subject: emailSubject,
+            body: emailBody,
+            recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+        )
+    } catch (Exception mailEx) {
+        echo "Failed to send email notification: ${mailEx.getMessage()}"
+    }
+    echo 'Pipeline finished.'
+}
+
 
         // Clean up old builds
         stage('Clean Up Old Builds') {
