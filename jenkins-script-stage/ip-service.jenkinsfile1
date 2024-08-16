@@ -1,155 +1,134 @@
-pipeline {
-    agent any
-    environment {
-        REPO_NAME = 'production-plan-private1'        // Docker Hub repository name
-        IMAGE_NAME = "samanthwohlig/${REPO_NAME}:production-plan-private1-${env.BUILD_NUMBER}"
-        DOCKER_API_URL = 'https://hub.docker.com/v2/repositories'
-        DOCKER_USERNAME = 'samanthwohlig'
-        DOCKER_PASSWORD = 'wohlig@123'
-        IMG_VERSION = "${env.BUILD_NUMBER}"  // Define imgVersion or replace it with the appropriate value
-        OLD_BUILDS_KEEP = 3  // Number of old builds to keep
-        EMAIL_RECIPIENTS = 'samanth.reddy@wohlig.com' // Set the recipient email address
-    }
-    triggers {
-        cron('0 2 * * *')  // Schedule to run daily at 2 AM
-    }
-    stages {
+node {
+    def repoName = 'production-plan-private1'
+    def imageName = "samanthwohlig/${repoName}:production-plan-private1-${env.BUILD_NUMBER}"
+    def dockerHubUrl = 'https://hub.docker.com/v2/repositories'
+    def dockerUsername = 'samanthwohlig'
+    def dockerPassword = 'wohlig@123'
+    def imgVersion = "${env.BUILD_NUMBER}"
+    def oldBuildsKeep = 3
+    def emailRecipients = 'samanth.reddy@wohlig.com'
+    def gkeCredentialsId = 'gke-service-account-key'
+    def kubectlConfigPath = '/root/.kube/config' // Update with your Kubernetes config path
+    def kubeNamespace = 'staging' // Update with your Kubernetes namespace
+
+    try {
+        // Checkout source code
         stage('Checkout and List Files') {
-            steps {
-                checkout scm
-                echo "Listing files in the workspace after checkout..."
-                sh 'ls -la'
-            }
+            checkout scm
+            echo "Listing files in the workspace after checkout..."
+            sh 'ls -la'
         }
 
+        // Verify directory structure
         stage('Verify Directory') {
-            steps {
-                echo "Listing files in the directory structure..."
-                sh 'ls -la jenkins-script-prod'
-                sh 'ls -la jenkins-script-stage'
-                sh 'ls -la k8s'
-                sh 'pwd'
-            }
+            echo "Listing files in the directory structure..."
+            sh 'ls -la jenkins-script-prod'
+            sh 'ls -la jenkins-script-stage'
+            sh 'ls -la k8s'
+            sh 'pwd'
         }
 
+        // Docker login
         stage('Docker Login') {
-            steps {
-                script {
-                    sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                }
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-samanth', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin"
             }
         }
 
+        // Check Docker Hub repository
         stage('Check Docker Hub Repository') {
-            steps {
-                script {
-                    def repoCheckCmd = """
-                    curl -s -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} -o /dev/null -w "%{http_code}" ${DOCKER_API_URL}/${DOCKER_USERNAME}/${REPO_NAME}/
-                    """
-                    def httpResponseCode = sh(script: repoCheckCmd, returnStdout: true).trim()
+            def repoCheckCmd = """
+            curl -s -u ${dockerUsername}:${dockerPassword} -o /dev/null -w "%{http_code}" ${dockerHubUrl}/${dockerUsername}/${repoName}/
+            """
+            def httpResponseCode = sh(script: repoCheckCmd, returnStdout: true).trim()
 
-                    if (httpResponseCode == '404') {
-                        echo "Repository ${REPO_NAME} does not exist. Creating it now."
-                        def createRepoCmd = """
-                        curl -X POST -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} ${DOCKER_API_URL} \
-                        -H "Content-Type: application/json" \
-                        -d '{
-                            "name": "${REPO_NAME}",
-                            "description": "A private repository for ${REPO_NAME}",
-                            "is_public": false
-                        }'
-                        """
-                        sh(script: createRepoCmd)
-                    } else if (httpResponseCode == '200') {
-                        echo "Repository ${REPO_NAME} already exists."
-                    } else {
-                        error "Unexpected response from Docker Hub: ${httpResponseCode}"
-                    }
-                }
+            if (httpResponseCode == '404') {
+                echo "Repository ${repoName} does not exist. Creating it now."
+                def createRepoCmd = """
+                curl -X POST -u ${dockerUsername}:${dockerPassword} ${dockerHubUrl} \
+                -H "Content-Type: application/json" \
+                -d '{
+                    "name": "${repoName}",
+                    "description": "A private repository for ${repoName}",
+                    "is_public": false
+                }'
+                """
+                sh(script: createRepoCmd)
+            } else if (httpResponseCode == '200') {
+                echo "Repository ${repoName} already exists."
+            } else {
+                error "Unexpected response from Docker Hub: ${httpResponseCode}"
             }
         }
 
+        // Build Docker image
         stage('Build Docker Image') {
-            steps {
-                script {
-                    echo "Building Docker image: ${IMAGE_NAME}"
-                    sh "docker build -t ${IMAGE_NAME} -f jenkins-script-stage/ip-service.Dockerfile ."
-                }
-            }
+            echo "Building Docker image: ${imageName}"
+            sh "docker build -t ${imageName} -f jenkins-script-stage/ip-service.Dockerfile ."
         }
 
+        // Push Docker image
         stage('Push Docker Image') {
-            when {
-                expression { params.PushToregistry == 'Yes' }
-            }
-            steps {
-                script {
-                    echo "Pushing Docker image: ${IMAGE_NAME}"
-                    sh "docker push ${IMAGE_NAME}"
-                }
+            if (params.PushToregistry == 'Yes') {
+                echo "Pushing Docker image: ${imageName}"
+                sh "docker push ${imageName}"
             }
         }
 
+        // Delete local Docker image
         stage('Delete Local Docker Image') {
-            when {
-                expression { params.PushToregistry == 'Yes' }
-            }
-            steps {
-                script {
-                    echo "Deleting local Docker image: ${IMAGE_NAME}"
-                    sh "docker rmi ${IMAGE_NAME}"
-                }
+            if (params.PushToregistry == 'Yes') {
+                echo "Deleting local Docker image: ${imageName}"
+                sh "docker rmi ${imageName}"
             }
         }
 
-      /*  stage('Deploying the App on GKE') {
-            steps {
-                withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    script {
-                        echo "Authenticating with Google Cloud..."
-                        sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
-                        sh "chmod +x jenkins-script-stage/changeTag.sh"
-                        sh "./jenkins-script-stage/changeTag.sh ${IMG_VERSION}"
-                        echo "Applying Kubernetes configuration..."
-                        sh 'kubectl apply -f jenkins-script-stage/kubectl/ip-service-stage.yaml -n staging'
-                        echo "Checking Kubernetes pods status..."
-                        sh 'kubectl get pods -n staging'
-                    }
+        // Commented out GKE Deployment Stage
+        /*
+        stage('Deploying the App on GKE') {
+            withCredentials([file(credentialsId: gkeCredentialsId, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                script {
+                    echo "Authenticating with Google Cloud..."
+                    sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+                    sh "chmod +x jenkins-script-stage/changeTag.sh"
+                    sh "./jenkins-script-stage/changeTag.sh ${imgVersion}"
+                    echo "Applying Kubernetes configuration..."
+                    sh "kubectl apply -f jenkins-script-stage/kubectl/ip-service-stage.yaml -n ${kubeNamespace}"
+                    echo "Checking Kubernetes pods status..."
+                    sh "kubectl get pods -n ${kubeNamespace}"
                 }
             }
-        }    */
+        }
+        */
 
+        // Clean up old builds
         stage('Clean Up Old Builds') {
-            when {
-                expression { currentBuild.result == 'SUCCESS' }
-            }
-            steps {
-                script {
-                    echo "Cleaning up old builds..."
-                    def buildsToKeep = sh(script: "curl -s -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} ${DOCKER_API_URL}/${DOCKER_USERNAME}/${REPO_NAME}/tags?page_size=100", returnStdout: true).trim()
-                    def tags = readJSON(text: buildsToKeep).results.collect { it.name }
-                    tags.sort().reverse().drop(OLD_BUILDS_KEEP).each { tag ->
-                        echo "Deleting old build: ${tag}"
-                        sh "curl -s -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} -X DELETE ${DOCKER_API_URL}/${DOCKER_USERNAME}/${REPO_NAME}/tags/${tag}/"
-                    }
+            if (currentBuild.result == 'SUCCESS') {
+                def buildsToKeep = sh(script: "curl -s -u ${dockerUsername}:${dockerPassword} ${dockerHubUrl}/${dockerUsername}/${repoName}/tags?page_size=100", returnStdout: true).trim()
+                def tags = readJSON(text: buildsToKeep).results.collect { it.name }
+                tags.sort().reverse().drop(oldBuildsKeep).each { tag ->
+                    echo "Deleting old build: ${tag}"
+                    sh "curl -s -u ${dockerUsername}:${dockerPassword} -X DELETE ${dockerHubUrl}/${dockerUsername}/${repoName}/tags/${tag}/"
                 }
             }
         }
-    }
-    post {
-        success {
-            echo 'Pipeline succeeded.'
-            mail to: EMAIL_RECIPIENTS,
-                 subject: "Jenkins Pipeline Succeeded: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                 body: "The pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER} succeeded.\n\nCheck Jenkins for more details."
-        }
-        failure {
-            echo 'Pipeline failed.'
-            mail to: EMAIL_RECIPIENTS,
-                 subject: "Jenkins Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                 body: "The pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER} failed.\n\nCheck Jenkins for more details."
-        }
-        always {
+
+    } catch (Exception e) {
+        currentBuild.result = 'FAILURE'
+        throw e
+    } finally {
+        // Post actions
+        stage('Notify') {
+            try {
+                def buildResult = currentBuild.result ?: 'UNSTABLE'
+                def emailSubject = buildResult == 'SUCCESS' ? "Jenkins Pipeline Succeeded: ${env.JOB_NAME} #${env.BUILD_NUMBER}" : "Jenkins Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                def emailBody = "The pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER} ${buildResult.toLowerCase()}.\n\nCheck Jenkins for more details."
+                mail to: emailRecipients,
+                     subject: emailSubject,
+                     body: emailBody
+            } catch (Exception mailEx) {
+                echo "Failed to send email notification: ${mailEx.getMessage()}"
+            }
             echo 'Pipeline finished.'
         }
     }
