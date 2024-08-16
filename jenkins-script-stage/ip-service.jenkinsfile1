@@ -7,8 +7,8 @@ pipeline {
         DOCKER_USERNAME = 'samanthwohlig'
         DOCKER_PASSWORD = 'wohlig@123'
         IMG_VERSION = "${env.BUILD_NUMBER}"  // Define imgVersion or replace it with the appropriate value
-        OLD_BUILDS_KEEP = 5  // Number of old builds to keep
-        EMAIL_RECIPIENTS = 'your-email@example.com' // Set the recipient email address
+        OLD_BUILDS_KEEP = 3  // Number of old builds to keep
+        EMAIL_RECIPIENTS = 'samanth.reddy@wohlig.com' // Set the recipient email address
     }
     triggers {
         cron('0 2 * * *')  // Schedule to run daily at 2 AM
