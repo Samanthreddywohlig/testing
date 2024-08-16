@@ -102,7 +102,7 @@ pipeline {
             }
         }
 
-        stage('Deploying the App on GKE') {
+      /*  stage('Deploying the App on GKE') {
             steps {
                 withCredentials([file(credentialsId: 'jenkins-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     script {
@@ -117,7 +117,7 @@ pipeline {
                     }
                 }
             }
-        }
+        }    */
 
         stage('Clean Up Old Builds') {
             when {
