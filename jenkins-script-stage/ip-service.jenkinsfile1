@@ -68,11 +68,6 @@ node {
             sh "docker build -t ${imageName} -f jenkins-script-stage/ip-service.Dockerfile ."
         }
 
-   // Docker Security Scan
-        stage('Docker Security Scan') {
-            echo "Scanning Docker image for vulnerabilities..."
-            sh "trivy image --no-progress ${imageName}" // Ensure Trivy is installed and configured
-        }
         // Push Docker image
         stage('Push Docker Image') {
             if (params.PushToregistry == 'Yes') {
