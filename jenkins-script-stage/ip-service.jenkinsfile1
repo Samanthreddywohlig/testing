@@ -6,7 +6,7 @@ node {
     def dockerPassword = 'wohlig@123'
     def imgVersion = "${env.BUILD_NUMBER}"
     def oldBuildsKeep = 3
-    def emailRecipients = 'samanthreddypallapolu@gmail.com'
+    def emailRecipients = 'samanth.reddy@wohlig.com'
     def gkeCredentialsId = 'gke-service-account-key'
     def kubectlConfigPath = '/root/.kube/config' // Update with your Kubernetes config path
     def kubeNamespace = 'staging' // Update with your Kubernetes namespace
