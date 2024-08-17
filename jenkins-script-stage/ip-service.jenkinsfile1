@@ -15,11 +15,11 @@ node {
         // Checkout source code
         stage('Checkout and List Files') {
             checkout scm
-            echo "Listing files in the workspace after checkout..."
-            sh 'ls -la'
+          //  echo "Listing files in the workspace after checkout..."
+           // sh 'ls -la'
         }
 
-        // Verify directory structure
+     /*   // Verify directory structure
         stage('Verify Directory') {
             echo "Listing files in the directory structure..."
             sh 'ls -la jenkins-script-prod'
@@ -27,6 +27,7 @@ node {
             sh 'ls -la k8s'
             sh 'pwd'
         }
+*/
 
         // Docker login
         stage('Docker Login') {
@@ -65,6 +66,12 @@ node {
         stage('Build Docker Image') {
             echo "Building Docker image: ${imageName}"
             sh "docker build -t ${imageName} -f jenkins-script-stage/ip-service.Dockerfile ."
+        }
+
+        // Docker Security Scan
+        stage('Docker Security Scan') {
+            echo "Scanning Docker image for vulnerabilities..."
+            sh "trivy image --no-progress ${imageName}" // Ensure Trivy is installed and configured
         }
 
         // Push Docker image
