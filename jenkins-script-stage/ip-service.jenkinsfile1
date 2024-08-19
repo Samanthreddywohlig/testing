@@ -1,9 +1,7 @@
 node {
-    def repoName = 'production-plan-private1'
-    def imageName = "samanthwohlig/${repoName}:production-plan-private1-${env.BUILD_NUMBER}"
+    def repoName = 'production-plan-private2'
+    def imageName = "samanthwohlig/${repoName}:production-plan-private-${env.BUILD_NUMBER}"
     def dockerHubUrl = 'https://hub.docker.com/v2/repositories'
-    def dockerUsername = 'samanthwohlig'
-    def dockerPassword = 'wohlig@123'
     def imgVersion = "${env.BUILD_NUMBER}"
     def oldBuildsKeep = 3
     def emailRecipients = 'samanth.reddy@wohlig.com'
@@ -19,7 +17,7 @@ node {
             sh 'ls -la'
         }
 
-      // Verify directory structure
+        // Verify directory structure
         stage('Verify Directory') {
             echo "Listing files in the directory structure..."
             sh 'ls -la jenkins-script-prod'
@@ -27,7 +25,6 @@ node {
             sh 'ls -la k8s'
             sh 'pwd'
         }
-
 
         // Docker login
         stage('Docker Login') {
@@ -38,27 +35,29 @@ node {
 
         // Check Docker Hub repository
         stage('Check Docker Hub Repository') {
-            def repoCheckCmd = """
-            curl -s -u ${dockerUsername}:${dockerPassword} -o /dev/null -w "%{http_code}" ${dockerHubUrl}/${dockerUsername}/${repoName}/
-            """
-            def httpResponseCode = sh(script: repoCheckCmd, returnStdout: true).trim()
-
-            if (httpResponseCode == '404') {
-                echo "Repository ${repoName} does not exist. Creating it now."
-                def createRepoCmd = """
-                curl -X POST -u ${dockerUsername}:${dockerPassword} ${dockerHubUrl} \
-                -H "Content-Type: application/json" \
-                -d '{
-                    "name": "${repoName}",
-                    "description": "A private repository for ${repoName}",
-                    "is_public": false
-                }'
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-samanth', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                def repoCheckCmd = """
+                curl -s -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} -o /dev/null -w "%{http_code}" ${dockerHubUrl}/${DOCKER_USERNAME}/${repoName}/
                 """
-                sh(script: createRepoCmd)
-            } else if (httpResponseCode == '200') {
-                echo "Repository ${repoName} already exists."
-            } else {
-                error "Unexpected response from Docker Hub: ${httpResponseCode}"
+                def httpResponseCode = sh(script: repoCheckCmd, returnStdout: true).trim()
+
+                if (httpResponseCode == '404') {
+                    echo "Repository ${repoName} does not exist. Creating it now."
+                    def createRepoCmd = """
+                    curl -X POST -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} ${dockerHubUrl} \
+                    -H "Content-Type: application/json" \
+                    -d '{
+                        "name": "${repoName}",
+                        "description": "A private repository for ${repoName}",
+                        "is_public": false
+                    }'
+                    """
+                    sh(script: createRepoCmd)
+                } else if (httpResponseCode == '200') {
+                    echo "Repository ${repoName} already exists."
+                } else {
+                    error "Unexpected response from Docker Hub: ${httpResponseCode}"
+                }
             }
         }
 
@@ -103,32 +102,33 @@ node {
         */
         
         stage('Notify') {
-    try {
-        def buildResult = currentBuild.result ?: 'UNSTABLE'
-        def emailSubject = buildResult == 'SUCCESS' ? "Jenkins Pipeline Succeeded: ${env.JOB_NAME} #${env.BUILD_NUMBER}" : "Jenkins Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-        def emailBody = "The pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER} ${buildResult.toLowerCase()}.\n\nCheck Jenkins for more details."
-        
-        emailext(
-            to: 'samanth.reddy@wohlig.com',
-            subject: emailSubject,
-            body: emailBody,
-            recipientProviders: [[$class: 'DevelopersRecipientProvider']]
-        )
-    } catch (Exception mailEx) {
-        echo "Failed to send email notification: ${mailEx.getMessage()}"
-    }
-    echo 'Pipeline finished.'
-}
-
+            try {
+                def buildResult = currentBuild.result ?: 'UNSTABLE'
+                def emailSubject = buildResult == 'SUCCESS' ? "Jenkins Pipeline Succeeded: ${env.JOB_NAME} #${env.BUILD_NUMBER}" : "Jenkins Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                def emailBody = "The pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER} ${buildResult.toLowerCase()}.\n\nCheck Jenkins for more details."
+                
+                emailext(
+                    to: emailRecipients,
+                    subject: emailSubject,
+                    body: emailBody,
+                    recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                )
+            } catch (Exception mailEx) {
+                echo "Failed to send email notification: ${mailEx.getMessage()}"
+            }
+            echo 'Pipeline finished.'
+        }
 
         // Clean up old builds
         stage('Clean Up Old Builds') {
             if (currentBuild.result == 'SUCCESS') {
-                def buildsToKeep = sh(script: "curl -s -u ${dockerUsername}:${dockerPassword} ${dockerHubUrl}/${dockerUsername}/${repoName}/tags?page_size=100", returnStdout: true).trim()
-                def tags = readJSON(text: buildsToKeep).results.collect { it.name }
-                tags.sort().reverse().drop(oldBuildsKeep).each { tag ->
-                    echo "Deleting old build: ${tag}"
-                    sh "curl -s -u ${dockerUsername}:${dockerPassword} -X DELETE ${dockerHubUrl}/${dockerUsername}/${repoName}/tags/${tag}/"
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-samanth', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    def buildsToKeep = sh(script: "curl -s -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} ${dockerHubUrl}/${DOCKER_USERNAME}/${repoName}/tags?page_size=100", returnStdout: true).trim()
+                    def tags = readJSON(text: buildsToKeep).results.collect { it.name }
+                    tags.sort().reverse().drop(oldBuildsKeep).each { tag ->
+                        echo "Deleting old build: ${tag}"
+                        sh "curl -s -u ${DOCKER_USERNAME}:${DOCKER_PASSWORD} -X DELETE ${dockerHubUrl}/${DOCKER_USERNAME}/${repoName}/tags/${tag}/"
+                    }
                 }
             }
         }
