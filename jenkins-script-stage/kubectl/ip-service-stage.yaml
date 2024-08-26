@@ -1,41 +1,97 @@
-kind: Deployment
+# Deployment for ip-service
 apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: ip-service-test
+  name: ip-service
   namespace: staging
+  labels:
+    app: ip-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ip-service-test
+      app: ip-service
   template:
     metadata:
       labels:
-        app: ip-service-test
+        app: ip-service
     spec:
       containers:
-        - name: ip-service-test
-          image: samanthwohlig/ip-service-production-test:tagVersion
+        - name: ip-service
+          image: mukulxinaam/gcp-stag-ip-service:tagVersion
           envFrom:
             - configMapRef:
-                name: ip-service-test
+                name: ip-service
           ports:
-            - containerPort: 3002
+            - containerPort: 3000
       imagePullSecrets:
         - name: mukulxinaam
+
 ---
+# Service for ip-service
 apiVersion: v1
 kind: Service
 metadata:
-  name: ip-service-test
+  name: ip-service
   namespace: staging
   annotations:
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
-    - port: 3002
-      targetPort: 3002
+    - port: 80
+      targetPort: 3000
       protocol: TCP
   selector:
-    app: ip-service-test
+    app: ip-service
+
+---
+# HealthCheckPolicy for ip-service
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: ip-service-healthcheck
+  namespace: staging
+spec:
+  default:
+    checkIntervalSec: 10
+    config:
+      tcpHealthCheck:
+        port: 3000
+      type: TCP
+    healthyThreshold: 2
+    logConfig:
+      enabled: true
+    timeoutSec: 10
+    unhealthyThreshold: 2
+  targetRef:
+    group: ''
+    kind: Service
+    name: ip-service
+
+---
+# HTTPRoute for ip-service
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: ip-service
+  namespace: staging
+spec:
+  hostnames:
+    - staging.mzaalo.com
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: op-gateway
+      namespace: gateway
+  rules:
+    - backendRefs:
+        - group: ''
+          kind: Service
+          name: ip-service
+          port: 80
+          weight: 1
+      matches:
+        - path:
+            type: PathPrefix
+            value: /ip-service
