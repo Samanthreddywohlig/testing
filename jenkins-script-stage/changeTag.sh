@@ -2,7 +2,7 @@
 
 # Enable debug mode to print each command before execution
 set -x
-
+ 
 # Check if the script received the required argument
 if [ -z "$1" ]; then
     echo "Error: No tag version provided."
