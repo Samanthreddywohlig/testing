@@ -11,6 +11,7 @@ node {
     def kubeNamespace = 'staging' // Update with your Kubernetes namespace
     def PushToregistry = params.PushToregistry == 'Yes'
 
+
     try {
         // Checkout source code
         stage('Checkout and List Files') {
